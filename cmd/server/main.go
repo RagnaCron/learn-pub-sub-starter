@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/RagnaCron/learn-pub-sub-starter/internal/pubsub"
+	"github.com/RagnaCron/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -18,6 +20,16 @@ func main() {
 	}
 	defer con.Close()
 
+	chann, err := con.Channel()
+	if err != nil {
+		log.Fatalf("could not create channel for RabbitMQ: %v\n", err)
+	}
+
+	err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+	if err != nil {
+		log.Fatalf("could not PublishJSON: %v\n", err)
+	}
+
 	fmt.Println("Peril game server connected to RabbitMQ")
 
 	// wait for ctrl+c
@@ -26,5 +38,4 @@ func main() {
 	<-signalChan
 
 	fmt.Println("RabbitMQ connection closed.")
-
 }
