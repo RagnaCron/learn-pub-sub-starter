@@ -9,6 +9,7 @@ import (
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/pubsub"
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/routing"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -22,15 +23,25 @@ func main() {
 	}
 	defer con.Close()
 
-	chann, err := con.Channel()
+	name, err := gamelogic.ClientWelcome()
 	if err != nil {
-		log.Fatalf("could not create channel for RabbitMQ: %v\n", err)
+		log.Fatalf("could not read name: %v\n", err)
 	}
 
-	err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+	_, _, err = pubsub.DeclareAndBind(con, routing.ExchangePerilDirect, routing.PauseKey+"."+name, routing.PauseKey, pubsub.Transient)
 	if err != nil {
-		log.Fatalf("could not PublishJSON: %v\n", err)
+		log.Fatalf("could not declare and bind channel and queue: %v\n", err)
 	}
+
+	// chann, err := con.Channel()
+	// if err != nil {
+	// 	log.Fatalf("could not create channel for RabbitMQ: %v\n", err)
+	// }
+
+	// err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+	// if err != nil {
+	// 	log.Fatalf("could not PublishJSON: %v\n", err)
+	// }
 
 	// fmt.Println("Peril game server connected to RabbitMQ")
 
@@ -38,11 +49,6 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 	<-signalChan
-
-	name, err := gamelogic.ClientWelcome()
-	if err != nil {
-		log.Fatalf("could not read name: %v\n", err)
-	}
 
 	fmt.Println("Peril client connection closed.")
 }
