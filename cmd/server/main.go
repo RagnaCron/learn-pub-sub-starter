@@ -29,31 +29,30 @@ func main() {
 	}
 
 	for {
-		input := gamelogic.GetInput()
-		com := input[0]
-
-		if com == "pause" {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+		switch words[0] {
+		case "pause":
 			log.Println("Pausing the game.")
 			err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
 			if err != nil {
 				log.Fatalf("could not PublishJSON: %v\n", err)
 			}
-		} else if com == "resume" {
+		case "resume":
 			log.Println("Resuming the game.")
 			err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
 			if err != nil {
 				log.Fatalf("could not PublishJSON: %v\n", err)
 			}
-
-		} else if com == "quit" {
+		case "quit":
 			log.Println("Exiting the game.")
 			break
-		} else {
-			log.Printf("Unkown command: %v\n", com)
+		default:
+			log.Printf("Unkown command: %v\n", words[0])
 		}
 	}
-
-	fmt.Println("Peril game server connected to RabbitMQ")
 
 	// wait for ctrl+c
 	signalChan := make(chan os.Signal, 1)
