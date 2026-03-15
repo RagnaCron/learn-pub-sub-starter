@@ -22,33 +22,22 @@ func main() {
 		log.Fatalf("could not connect to RabbitMQ: %v\n", err)
 	}
 	defer con.Close()
+	fmt.Println("Peril game client connected to RabbitMQ!")
 
 	name, err := gamelogic.ClientWelcome()
 	if err != nil {
 		log.Fatalf("could not read name: %v\n", err)
 	}
 
-	_, _, err = pubsub.DeclareAndBind(con, routing.ExchangePerilDirect, routing.PauseKey+"."+name, routing.PauseKey, pubsub.Transient)
+	_, queue, err := pubsub.DeclareAndBind(con, routing.ExchangePerilDirect, routing.PauseKey+"."+name, routing.PauseKey, pubsub.Transient)
 	if err != nil {
 		log.Fatalf("could not declare and bind channel and queue: %v\n", err)
 	}
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	// chann, err := con.Channel()
-	// if err != nil {
-	// 	log.Fatalf("could not create channel for RabbitMQ: %v\n", err)
-	// }
-
-	// err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
-	// if err != nil {
-	// 	log.Fatalf("could not PublishJSON: %v\n", err)
-	// }
-
-	// fmt.Println("Peril game server connected to RabbitMQ")
-
-	// wait for ctrl+c
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 	<-signalChan
 
-	fmt.Println("Peril client connection closed.")
+	fmt.Println("Peril client connection closed.\n")
 }
