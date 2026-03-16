@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/pubsub"
@@ -29,15 +27,42 @@ func main() {
 		log.Fatalf("could not read name: %v\n", err)
 	}
 
+	gameState := gamelogic.NewGameState(name)
+
 	_, queue, err := pubsub.DeclareAndBind(con, routing.ExchangePerilDirect, routing.PauseKey+"."+name, routing.PauseKey, pubsub.Transient)
 	if err != nil {
 		log.Fatalf("could not declare and bind channel and queue: %v\n", err)
 	}
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
-
-	fmt.Println("Peril client connection closed.\n")
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+		switch words[0] {
+		case "spawn":
+			err = gameState.CommandSpawn(words)
+			if err != nil {
+				log.Fatalf("could not spawn pawn: %v\n", err)
+			}
+		case "move":
+			_, err := gameState.CommandMove(words)
+			if err != nil {
+				log.Fatalf("could not move pawn: %v\n", err)
+			}
+			fmt.Println("Moved unit!")
+		case "status":
+			gameState.CommandStatus()
+		case "help":
+			gamelogic.PrintClientHelp()
+		case "spam":
+			fmt.Println("Spamming not allowed yet!")
+		case "quit":
+			gamelogic.PrintQuit()
+			return
+		default:
+			fmt.Printf("Command not found: %v\n", words)
+		}
+	}
 }

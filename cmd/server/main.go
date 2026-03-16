@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/pubsub"
@@ -23,10 +21,11 @@ func main() {
 	}
 	defer con.Close()
 
-	chann, err := con.Channel()
+	chann, queue, err := pubsub.DeclareAndBind(con, routing.ExchangePerilTopic, routing.GameLogSlug, routing.GameLogSlug+".*", pubsub.Durable)
 	if err != nil {
-		log.Fatalf("could not create channel for RabbitMQ: %v\n", err)
+		log.Fatalf("could not declare and bind channel and queue: %v\n", err)
 	}
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
 	for {
 		words := gamelogic.GetInput()
@@ -48,16 +47,9 @@ func main() {
 			}
 		case "quit":
 			log.Println("Exiting the game.")
-			break
+			return
 		default:
 			log.Printf("Unkown command: %v\n", words[0])
 		}
 	}
-
-	// wait for ctrl+c
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
-
-	fmt.Println("RabbitMQ connection closed.")
 }
