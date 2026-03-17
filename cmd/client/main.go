@@ -29,11 +29,10 @@ func main() {
 
 	gameState := gamelogic.NewGameState(name)
 
-	_, queue, err := pubsub.DeclareAndBind(con, routing.ExchangePerilDirect, routing.PauseKey+"."+name, routing.PauseKey, pubsub.Transient)
+	err = pubsub.SubscribeJSON(con, routing.ExchangePerilDirect, routing.PauseKey+"."+name, routing.PauseKey, pubsub.Transient, handlerPause(gameState))
 	if err != nil {
 		log.Fatalf("could not declare and bind channel and queue: %v\n", err)
 	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
 	for {
 		words := gamelogic.GetInput()
@@ -44,14 +43,14 @@ func main() {
 		case "spawn":
 			err = gameState.CommandSpawn(words)
 			if err != nil {
-				log.Fatalf("could not spawn pawn: %v\n", err)
+				fmt.Println(err)
 			}
 		case "move":
 			_, err := gameState.CommandMove(words)
 			if err != nil {
-				log.Fatalf("could not move pawn: %v\n", err)
+				fmt.Println(err)
 			}
-			fmt.Println("Moved unit!")
+
 		case "status":
 			gameState.CommandStatus()
 		case "help":
