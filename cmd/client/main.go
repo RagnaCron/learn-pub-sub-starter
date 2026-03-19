@@ -42,7 +42,7 @@ func main() {
 	err = pubsub.SubscribeJSON(
 		con,
 		routing.ExchangePerilTopic,
-		routing.ArmyMovesPrefix+".*."+name,
+		routing.ArmyMovesPrefix+"."+name,
 		routing.ArmyMovesPrefix+".*",
 		pubsub.Transient,
 		handlerMove(gameState),
@@ -58,6 +58,7 @@ func main() {
 			err = gameState.CommandSpawn(words)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 		case "move":
 			move, err := gameState.CommandMove(words)
@@ -66,7 +67,7 @@ func main() {
 				continue
 			}
 
-			pubsub.PublishJSON(publishCh, routing.ExchangePerilTopic, routing.ArmyMovesPrefix+".*."+name, move)
+			pubsub.PublishJSON(publishCh, routing.ExchangePerilTopic, routing.ArmyMovesPrefix+"."+name, move)
 			if err != nil {
 				fmt.Println(err)
 				continue

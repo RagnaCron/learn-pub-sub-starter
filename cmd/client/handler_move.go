@@ -4,11 +4,22 @@ import (
 	"fmt"
 
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/gamelogic"
+	"github.com/RagnaCron/learn-pub-sub-starter/internal/pubsub"
 )
 
-func handlerMove(gs *gamelogic.GameState) func(move gamelogic.ArmyMove) {
-	return func(move gamelogic.ArmyMove) {
+func handlerMove(gs *gamelogic.GameState) func(move gamelogic.ArmyMove) pubsub.AckType {
+	return func(move gamelogic.ArmyMove) pubsub.AckType {
 		defer fmt.Print("> ")
-		gs.HandleMove(move)
+		mo := gs.HandleMove(move)
+		switch mo {
+		case gamelogic.MoveOutComeSafe:
+			return pubsub.Ack
+		case gamelogic.MoveOutcomeMakeWar:
+			return pubsub.Ack
+		case gamelogic.MoveOutcomeSamePlayer:
+			return pubsub.NackDiscard
+		}
+		fmt.Println("error: unkown move outcome")
+		return pubsub.NackDiscard
 	}
 }
