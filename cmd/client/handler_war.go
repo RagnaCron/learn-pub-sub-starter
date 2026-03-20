@@ -19,13 +19,22 @@ func handlerWar(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.Recogn
 		case gamelogic.WarOutcomeNoUnits:
 			return pubsub.NackDiscard
 		case gamelogic.WarOutcomeOpponentWon:
-			PublishGameLog(fmt.Sprintf("%s won a war against %s", winner, loser))
+			err := pubsub.PublishGameLog(ch, gs.Player.Username, fmt.Sprintf("%s won a war against %s", winner, loser))
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		case gamelogic.WarOutcomeYouWon:
-			PublishGameLog(fmt.Sprintf("%s won a war against %s", winner, loser))
+			err := pubsub.PublishGameLog(ch, gs.Player.Username, fmt.Sprintf("%s won a war against %s", winner, loser))
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		case gamelogic.WarOutcomeDraw:
-			PublishGameLog(fmt.Sprintf("A war between %s and %s resulted in a draw", winner, loser))
+			err := pubsub.PublishGameLog(ch, gs.Player.Username, fmt.Sprintf("A war between %s and %s resulted in a draw", winner, loser))
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		default:
 			fmt.Println("error: unknown war outcome")

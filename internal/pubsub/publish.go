@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	"time"
 
+	"github.com/RagnaCron/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -22,8 +24,8 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 }
 
 func PublishGob[T any](ch *amqp.Channel, exchange string, key string, val T) error {
-	var netwok bytes.Buffer
-	enc := gob.NewEncoder(&netwok)
+	var network bytes.Buffer
+	enc := gob.NewEncoder(&network)
 	err := enc.Encode(val)
 	if err != nil {
 		return err
@@ -31,10 +33,14 @@ func PublishGob[T any](ch *amqp.Channel, exchange string, key string, val T) err
 
 	return ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
 		ContentType: "application/gob",
-		Body:        netwok.Bytes(),
+		Body:        network.Bytes(),
 	})
 }
 
-func PublishGameLog(username string, msg string) error {
-	return nil
+func PublishGameLog(ch *amqp.Channel, username string, msg string) error {
+	return PublishGob(ch, routing.ExchangePerilTopic, routing.GameLogSlug+"."+username, routing.GameLog{
+		CurrentTime: time.Now().UTC(),
+		Message:     msg,
+		Username:    username,
+	})
 }
