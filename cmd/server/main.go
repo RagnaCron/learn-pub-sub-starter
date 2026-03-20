@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/gamelogic"
@@ -21,11 +20,22 @@ func main() {
 	}
 	defer con.Close()
 
-	chann, queue, err := pubsub.DeclareAndBind(con, routing.ExchangePerilTopic, routing.GameLogSlug, routing.GameLogSlug+".*", pubsub.Durable)
+	publishCh, err := con.Channel()
 	if err != nil {
-		log.Fatalf("could not declare and bind channel and queue: %v\n", err)
+		log.Fatalf("could not create channel: %v", err)
 	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
+
+	pubsub.SubscribeGob(
+		con,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug+".*",
+		pubsub.Durable,
+		handlerLog(),
+	)
+	if err != nil {
+		log.Fatalf("could not subscirbe to logs: %v\n", err)
+	}
 
 	for {
 		words := gamelogic.GetInput()
@@ -35,13 +45,13 @@ func main() {
 		switch words[0] {
 		case "pause":
 			log.Println("Pausing the game.")
-			err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+			err = pubsub.PublishJSON(publishCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
 			if err != nil {
 				log.Fatalf("could not PublishJSON: %v\n", err)
 			}
 		case "resume":
 			log.Println("Resuming the game.")
-			err = pubsub.PublishJSON(chann, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
+			err = pubsub.PublishJSON(publishCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
 			if err != nil {
 				log.Fatalf("could not PublishJSON: %v\n", err)
 			}
