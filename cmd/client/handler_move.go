@@ -26,9 +26,10 @@ func handlerMove(gs *gamelogic.GameState, chann *amqp.Channel) func(move gamelog
 					Defender: gs.GetPlayerSnap(),
 				})
 			if err != nil {
-				fmt.Printf("error: PublishJSON: %v\n", err)
+				fmt.Printf("error: %v\n", err)
+				return pubsub.NackRequeue
 			}
-			return pubsub.NackRequeue // todo, this will let it go crazy....
+			return pubsub.Ack
 		case gamelogic.MoveOutcomeSamePlayer:
 			return pubsub.NackDiscard
 		}
