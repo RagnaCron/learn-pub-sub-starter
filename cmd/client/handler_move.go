@@ -5,9 +5,11 @@ import (
 
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/RagnaCron/learn-pub-sub-starter/internal/pubsub"
+	"github.com/RagnaCron/learn-pub-sub-starter/internal/routing"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func handlerMove(gs *gamelogic.GameState) func(move gamelogic.ArmyMove) pubsub.AckType {
+func handlerMove(gs *gamelogic.GameState, chann *amqp.Channel) func(move gamelogic.ArmyMove) pubsub.AckType {
 	return func(move gamelogic.ArmyMove) pubsub.AckType {
 		defer fmt.Print("> ")
 		mo := gs.HandleMove(move)
@@ -15,7 +17,18 @@ func handlerMove(gs *gamelogic.GameState) func(move gamelogic.ArmyMove) pubsub.A
 		case gamelogic.MoveOutComeSafe:
 			return pubsub.Ack
 		case gamelogic.MoveOutcomeMakeWar:
-			return pubsub.Ack
+			err := pubsub.PublishJSON(
+				chann,
+				routing.ExchangePerilTopic,
+				routing.WarRecognitionsPrefix+"."+gs.Player.Username,
+				gamelogic.RecognitionOfWar{
+					Attacker: move.Player,
+					Defender: gs.GetPlayerSnap(),
+				})
+			if err != nil {
+				fmt.Printf("error: PublishJSON: %v\n", err)
+			}
+			return pubsub.NackRequeue // todo, this will let it go crazy....
 		case gamelogic.MoveOutcomeSamePlayer:
 			return pubsub.NackDiscard
 		}

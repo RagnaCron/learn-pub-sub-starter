@@ -34,7 +34,13 @@ func main() {
 
 	gameState := gamelogic.NewGameState(name)
 
-	err = pubsub.SubscribeJSON(con, routing.ExchangePerilDirect, routing.PauseKey+"."+name, routing.PauseKey, pubsub.Transient, handlerPause(gameState))
+	err = pubsub.SubscribeJSON(
+		con,
+		routing.ExchangePerilDirect,
+		routing.PauseKey+"."+name,
+		routing.PauseKey, pubsub.Transient,
+		handlerPause(gameState),
+	)
 	if err != nil {
 		log.Fatalf("could not subscribe to pause: %v\n", err)
 	}
@@ -45,8 +51,23 @@ func main() {
 		routing.ArmyMovesPrefix+"."+name,
 		routing.ArmyMovesPrefix+".*",
 		pubsub.Transient,
-		handlerMove(gameState),
+		handlerMove(gameState, publishCh),
 	)
+	if err != nil {
+		log.Fatalf("could not subscribe to move: %v\n", err)
+	}
+
+	err = pubsub.SubscribeJSON(
+		con,
+		routing.ExchangePerilTopic,
+		"war",
+		routing.WarRecognitionsPrefix+".*",
+		pubsub.Durable,
+		handlerWar(gameState),
+	)
+	if err != nil {
+		log.Fatalf("could not subscribe to war: %vl\n", err)
+	}
 
 	for {
 		words := gamelogic.GetInput()
@@ -67,7 +88,7 @@ func main() {
 				continue
 			}
 
-			pubsub.PublishJSON(publishCh, routing.ExchangePerilTopic, routing.ArmyMovesPrefix+"."+name, move)
+			err = pubsub.PublishJSON(publishCh, routing.ExchangePerilTopic, routing.ArmyMovesPrefix+"."+name, move)
 			if err != nil {
 				fmt.Println(err)
 				continue
