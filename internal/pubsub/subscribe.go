@@ -31,6 +31,11 @@ func SubscribeJSON[T any](
 		return errors.Join(fmt.Errorf("could not declare and bind channel and queue"), err)
 	}
 
+	err = chann.Qos(10, 0, false)
+	if err != nil {
+		return fmt.Errorf("could not change qos: %v\n", err)
+	}
+
 	delivery, err := chann.Consume(queue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("could not consume messages: %v", err)
@@ -71,6 +76,11 @@ func SubscribeGob[T any](
 	chann, queue, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
 	if err != nil {
 		return errors.Join(fmt.Errorf("could not declare and bind channel and queue"), err)
+	}
+
+	err = chann.Qos(10, 0, false)
+	if err != nil {
+		return fmt.Errorf("could not change qos: %v\n", err)
 	}
 
 	delivery, err := chann.Consume(queue.Name, "", false, false, false, false, nil)
